@@ -1,66 +1,45 @@
 import codecs
-from collections import Counter
 import json
 import nltk
-
 nltk.download('punkt')
 from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-from nltk.tokenize import RegexpTokenizer
-
 nltk.download('stopwords')
+import re
 
 # Reads the json file with the data
 with open("tweets.json", encoding='utf-8') as file:
     data = json.load(file)
-# saves all the tweets in a list
+
+# saves all the tweets and dates in a list
 tweet = []
 for x in data:
-    tweet.append(x['tweets'])
+    tweet.append(str(x['tweets']) +'; '+ str(x['time']))
 
-# creates a string to hold all the tweets for word count
-tweet_string = ''.join(tweet)
-# tokenizes the tweet string and saves them into the word variable
-words = word_tokenize(tweet_string)
-
-# stemming
+# stemming and removing comma
 ps = PorterStemmer()
 stemTweet = []
-for w in words:
-    stemTweet.append(ps.stem(w))
+for x in tweet:
+    stemTweet.append(ps.stem(x))
+    x.replace(',', ' ')
 
 
-# joines the stemmed words
-tweet_string2 = ' '.join(stemTweet)
+cleanTweet = []
+#Regex for date
+reg = '(0?[1-9]|1[0-2])[\/](0?[1-9]|[12]\d|3[01])[\/](19|20)\d{2}'
+#Remove timestamp, so that we are only left with the data
+for x in stemTweet:
+    condition = re.search(reg, x)
+    if condition:
+        str = re.search(reg, x)
+        start = str.span()[1]
+        stopp = x[-1]
+        cleanTweet.append(x[0:start])
 
-# Stopwords
-stop_words = set(stopwords.words("english"))
-words2 = word_tokenize(tweet_string2)
-filtered_sentence = [w for w in words2 if not w in stop_words]
 
-# joines stemmed and stopword
-tweet_string3 = ' '.join(filtered_sentence)
-
-# Remove special characters
-tokenizer = RegexpTokenizer(r'\w+')
-spec_char = tokenizer.tokenize(tweet_string3)
-
-# joines stemmed, stopwords and removed special characters
-tweet_string4 = ' '.join(spec_char).lower()
-
-# Counts word frequency for each word
-word_freq = []
-tokens = tweet_string4.split(" ")
-cnt = Counter(tokens)
-freq = cnt.most_common()
-word_freq.append(freq)
-
-# Writes to file
-file_out = codecs.open("word_frq.txt", "w", "utf-8")
-file_out.write(str(word_freq))
-file_out.close()
-
-file_out = codecs.open("cloud.txt", "w", "utf-8")
-file_out.write(str(tweet_string4))
+#Adds a header to the list
+cleanTweet.insert(0,'text' +';'+ 'time' )
+#Writes to file
+file_out = codecs.open("cloud.csv", "w", "utf-8")
+for x in cleanTweet:
+    file_out.write(x + '\n')
 file_out.close()
